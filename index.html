@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F1F4F3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Meals">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Meals</title>
+<style>
+:root{--bg:#F1F4F3;--card:#fff;--ink:#17201E;--mute:#8A9591;--line:#E6ECEA;--acc:#2C6B5F;--acc-t:#E1EFEB;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#0F1514;--card:#172120;--ink:#E8EFED;--mute:#7F8C88;--line:#243230;--acc:#6CC3B0;--acc-t:#1C3A34}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.3 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif}
+body{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 14px) 12px calc(env(safe-area-inset-bottom) + 18px);min-height:100dvh}
+header{display:flex;align-items:flex-end;justify-content:space-between;padding:0 4px 14px}
+h1{margin:0;font-size:26px;letter-spacing:-.02em}
+#wk{margin:2px 0 0;color:var(--mute);font-size:13px}
+.actions{display:flex;gap:6px}
+.ib{position:relative;width:40px;height:40px;border:0;border-radius:12px;background:var(--card);color:var(--ink);display:grid;place-items:center;cursor:pointer;transition:transform .15s,background .2s}
+.ib:active{transform:scale(.92)}
+svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--mute);border:2px solid var(--card);transition:background .3s}
+#dot[data-s=ok]{background:var(--acc)}#dot[data-s=sync]{background:#E0A63A;animation:pulse 1s infinite}#dot[data-s=off]{background:#D2625A}#dot[data-s=none]{display:none}
+@keyframes pulse{50%{opacity:.35}}
+.head,.row{display:grid;grid-template-columns:56px 1fr 1fr}
+.head b{font-size:13px;font-weight:600;color:var(--mute);text-align:center;padding:2px 0 8px}
+.day{background:var(--card);border-radius:18px;margin-bottom:8px;overflow:hidden}
+.boot .day{animation:in .45s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--n)*50ms)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+.row{min-height:64px}.row+.row{border-top:1px solid var(--line)}
+.lab{padding:0 0 0 14px;display:flex;flex-direction:column;justify-content:center}
+.d{font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.1}.d.today{color:var(--acc)}
+.m{font-size:11px;color:var(--mute);margin-top:2px}
+.slot{padding:4px 3px;min-width:0}.slot:last-child{padding-right:5px}
+.chip{position:relative;height:100%;min-height:54px;border-radius:12px;padding:8px 28px 8px 9px;display:flex;align-items:center;font-size:14px;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:background .25s,box-shadow .2s}
+@media(hover:hover){.chip:hover{background:var(--bg)}}
+.chip.wfh{background:var(--acc-t)}
+.txt{outline:0;width:100%;overflow-wrap:anywhere;min-height:1.3em}
+.txt:empty::before{content:"Add meal";color:var(--mute);opacity:.55}
+.txt[contenteditable=true]{user-select:text;-webkit-user-select:text;cursor:text}
+.editing{background:var(--card)!important;box-shadow:inset 0 0 0 1.5px var(--acc)}
+.wb{position:absolute;top:3px;right:3px;width:26px;height:26px;border:0;padding:0;background:none;color:var(--mute);opacity:.4;display:grid;place-items:center;border-radius:9px;cursor:pointer;transition:opacity .2s,color .2s}
+.wb svg{width:17px;height:17px;fill:transparent;transition:fill .25s}
+.wfh .wb{opacity:1;color:var(--acc)}.wfh .wb svg{fill:color-mix(in srgb,var(--acc) 25%,transparent)}
+.wb.pop svg{animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{40%{transform:scale(1.35)}}
+.lifted{opacity:.25}
+.ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;background:var(--card);box-shadow:0 14px 30px rgba(0,0,0,.2),0 0 0 1.5px var(--acc);transition:none}
+.slot.target .chip{box-shadow:inset 0 0 0 1.5px var(--acc);background:var(--acc-t)}
+.dragging{cursor:grabbing}.dragging *{cursor:grabbing!important}
+footer{text-align:center;color:var(--mute);font-size:10px;opacity:.7;padding-top:8px}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translate(-50%,140%);background:var(--ink);color:var(--bg);padding:10px 12px 10px 16px;border-radius:14px;display:flex;gap:14px;align-items:center;font-size:14px;transition:transform .35s cubic-bezier(.2,.8,.2,1);z-index:60;white-space:nowrap}
+#toast.on{transform:translate(-50%,0)}
+#toast button{border:0;background:none;color:inherit;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0 4px}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .3s;z-index:70}
+#scrim.on{opacity:1;pointer-events:auto}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--card);border-radius:22px 22px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .4s cubic-bezier(.2,.8,.2,1);z-index:80}
+#sheet.on{transform:none}
+#sheet h2{margin:0 0 4px;font-size:19px}#sheet p{margin:0 0 14px;color:var(--mute);font-size:13px}
+#sheet input{width:100%;font:inherit;font-size:16px;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);outline:0;transition:border-color .2s}
+#sheet input:focus{border-color:var(--acc)}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{flex:1;min-width:120px;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:600;cursor:pointer;background:var(--bg);color:var(--ink);transition:transform .15s}
+.btn:active{transform:scale(.97)}.btn.p{background:var(--acc);color:var(--card)}
+#msg{margin-top:10px;font-size:13px;color:var(--mute);min-height:1em}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head><body class="boot">
+<header>
+  <div><h1>Meals</h1><p id="wk"></p></div>
+  <div class="actions">
+    <button class="ib" id="syncBtn" aria-label="Sync settings"><svg viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5H7z"/></svg><i id="dot" data-s="none"></i></button>
+    <button class="ib" id="newBtn" aria-label="Start new week"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>
+  </div>
+</header>
+<main>
+  <div class="head"><span></span><b id="n0">Tiffany</b><b id="n1">Eric</b></div>
+  <div id="rows"></div>
+</main>
+<footer>v1.0</footer>
+<div id="toast"><span id="tmsg"></span><button id="tact"></button></div>
+<div id="scrim"></div>
+<div id="sheet">
+  <h2>Sync with Google Sheets</h2>
+  <p>Paste your Apps Script web app URL. Share the invite link so both phones use the same sheet.</p>
+  <input id="url" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+  <div class="btns"><button class="btn p" id="connect">Connect</button><button class="btn" id="invite">Copy invite link</button><button class="btn" id="disc">Disconnect</button></div>
+  <div id="msg"></div>
+</div>
+<script>
+const DAYS=['Mon','Tue','Wed','Thu','Fri'],K='meals.v1',SK='meals.sync';
+const $=s=>document.querySelector(s),rows=$('#rows'),uid=()=>Math.random().toString(36).slice(2,9);
+const blank=()=>[0,1].map(()=>Array.from({length:10},()=>({id:uid(),t:'',w:false})));
+const HOME='<svg viewBox="0 0 24 24"><path d="M3.5 11 12 3.5l8.5 7.5M5.5 9.5V20h13V9.5M10 20v-5.5h4V20"/></svg>';
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S;try{S=JSON.parse(localStorage[K])}catch{}
+S=S||{updatedAt:0,names:['Tiffany','Eric'],cells:blank()};
+let API=localStorage[SK]||'';
+const h=location.hash.match(/sync=([^&]+)/);if(h){API=decodeURIComponent(h[1]);localStorage[SK]=API;history.replaceState(null,'',location.pathname)}
+const loc=id=>{for(const c of S.cells)for(const i of c)if(i.id===id)return i};
+function commit(){S.updatedAt=Math.max(Date.now(),S.updatedAt+1);localStorage[K]=JSON.stringify(S);push()}
+
+/* week label */
+(function(){const d=new Date(),g=d.getDay(),o=g===0?1:g===6?2:1-g,m=new Date(d);m.setDate(d.getDate()+o);const f=new Date(m);f.setDate(m.getDate()+4);
+const F={day:'numeric',month:'short'};$('#wk').textContent=(g===0||g===6?'Next week, ':'')+m.toLocaleDateString(undefined,F)+' – '+f.toLocaleDateString(undefined,F)})();
+const today=(g=>g>=1&&g<=5?g-1:-1)(new Date().getDay());
+
+/* render */
+function chip(it,c){return `<div class="chip${it.w?' wfh':''}" data-id="${it.id}"><div class="txt">${esc(it.t)}</div><button class="wb${''}" aria-label="Working from home" aria-pressed="${it.w}">${HOME}</button></div>`}
+function render(){
+  $('#n0').textContent=S.names[0];$('#n1').textContent=S.names[1];
+  rows.innerHTML=DAYS.map((d,n)=>`<section class="day" style="--n:${n}">`+[0,1].map(m=>{const i=n*2+m;
+    return `<div class="row"><div class="lab">${m?'':`<div class="d${n===today?' today':''}">${d}</div>`}<div class="m">${m?'Dinner':'Lunch'}</div></div>`+
+    [0,1].map(c=>`<div class="slot" data-c="${c}" data-i="${i}">${chip(S.cells[c][i],c)}</div>`).join('')+'</div>'}).join('')+'</section>').join('');
+}
+const rects=()=>{const m={};rows.querySelectorAll('.chip').forEach(c=>m[c.dataset.id]=c.getBoundingClientRect());return m};
+function flip(before){if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  rows.querySelectorAll('.chip').forEach(c=>{const o=before[c.dataset.id];if(!o)return;const n=c.getBoundingClientRect(),dx=o.left-n.left,dy=o.top-n.top;
+  if(Math.abs(dx)+Math.abs(dy)>1)c.animate([{transform:`translate(${dx}px,${dy}px)`,zIndex:5},{transform:'none',zIndex:5}],{duration:300,easing:'cubic-bezier(.2,.8,.2,1)'})})}
+
+/* edit + WFH */
+rows.addEventListener('click',e=>{const b=e.target.closest('.wb');if(!b)return;const c=b.closest('.chip'),it=loc(c.dataset.id);
+  it.w=!it.w;c.classList.toggle('wfh',it.w);b.setAttribute('aria-pressed',it.w);b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');commit();navigator.vibrate&&navigator.vibrate(6)});
+function edit(c){const t=c.querySelector('.txt');t.contentEditable='true';c.classList.add('editing');t.focus();
+  const r=document.createRange();r.selectNodeContents(t);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r)}
+rows.addEventListener('focusout',e=>{const t=e.target.closest('.txt');if(!t)return;const c=t.closest('.chip'),it=loc(c.dataset.id),v=t.innerText.replace(/\s+/g,' ').trim();
+  t.contentEditable='false';c.classList.remove('editing');t.textContent=v;if(it.t!==v){it.t=v;commit()}});
+rows.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur()}});
+rows.addEventListener('paste',e=>{e.preventDefault();document.execCommand('insertText',false,(e.clipboardData.getData('text')||'').replace(/\s+/g,' '))});
+
+/* drag */
+let press=null,drag=null,timer=0;
+rows.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('.wb'))return;const c=e.target.closest('.chip');if(!c||e.target.isContentEditable)return;
+  press={c,x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,touch:e.pointerType!=='mouse'};
+  if(press.touch)timer=setTimeout(startDrag,230)});
+addEventListener('pointermove',e=>{if(!press)return;press.lx=e.clientX;press.ly=e.clientY;
+  if(drag){place();return}
+  if(Math.hypot(e.clientX-press.x,e.clientY-press.y)>(press.touch?8:5)){if(press.touch){clearTimeout(timer);press=null}else startDrag()}});
+addEventListener('touchmove',e=>{if(drag)e.preventDefault()},{passive:false});
+function startDrag(){if(!press||drag)return;const c=press.c,r=c.getBoundingClientRect(),g=c.cloneNode(true);
+  g.classList.add('ghost');g.style.width=r.width+'px';g.style.height=r.height+'px';document.body.appendChild(g);
+  drag={c,g,ox:press.x-r.left,oy:press.y-r.top,src:c.parentElement,tgt:null};c.classList.add('lifted');document.body.classList.add('dragging');
+  navigator.vibrate&&navigator.vibrate(10);place()}
+function place(){const{g,ox,oy}=drag,x=press.lx,y=press.ly;g.style.transform=`translate(${x-ox}px,${y-oy}px) scale(1.04)`;
+  const s=document.elementFromPoint(x,y)?.closest('.slot');const t=s&&s!==drag.src?s:null;
+  if(t!==drag.tgt){drag.tgt?.classList.remove('target');t?.classList.add('target');drag.tgt=t}}
+function end(cancel){clearTimeout(timer);if(!press)return;
+  if(!drag){const c=press.c;press=null;if(!cancel)edit(c);return}
+  const{c,g,src,tgt}=drag,gr=g.getBoundingClientRect();g.remove();c.classList.remove('lifted');tgt?.classList.remove('target');document.body.classList.remove('dragging');drag=null;press=null;
+  if(cancel||!tgt)return;const a=+src.dataset.c,i=+src.dataset.i,b=+tgt.dataset.c,j=+tgt.dataset.i,before=rects();before[c.dataset.id]=gr;
+  if(a===b){const arr=S.cells[a];arr.splice(j,0,arr.splice(i,1)[0])}else{[S.cells[a][i],S.cells[b][j]]=[S.cells[b][j],S.cells[a][i]]}
+  commit();render();flip(before)}
+addEventListener('pointerup',()=>end(false));addEventListener('pointercancel',()=>end(true));
+
+/* toast */
+let tt=0;function toast(m,a,fn){$('#tmsg').textContent=m;const b=$('#tact');b.textContent=a||'';b.style.display=a?'':'none';b.onclick=()=>{fn&&fn();$('#toast').classList.remove('on')};
+  $('#toast').classList.add('on');clearTimeout(tt);tt=setTimeout(()=>$('#toast').classList.remove('on'),5000)}
+$('#newBtn').onclick=()=>{const snap=JSON.stringify(S.cells);S.cells=blank();commit();render();toast('Week cleared','Undo',()=>{S.cells=JSON.parse(snap);commit();render()})};
+
+/* sync (Google Apps Script web app, last-write-wins on updatedAt) */
+const dot=$('#dot'),st=s=>dot.dataset.s=API?s:'none';
+function adopt(r){S=r;localStorage[K]=JSON.stringify(S);render()}
+async function send(){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(S)});const w=await r.json();if(w&&w.updatedAt>S.updatedAt)adopt(w)}
+let pt=0,busy=false;
+function push(){if(!API)return;st('sync');clearTimeout(pt);pt=setTimeout(async()=>{try{await send();st('ok')}catch{st('off')}},700)}
+async function pull(){if(!API||busy||drag||document.activeElement?.isContentEditable)return;busy=true;st('sync');
+  try{const r=await(await fetch(API,{cache:'no-store'})).json();
+    if(r&&r.updatedAt>S.updatedAt)adopt(r);else if(!r||S.updatedAt>r.updatedAt)await send();st('ok')}catch{st('off')}busy=false}
+setInterval(()=>document.visibilityState==='visible'&&pull(),15000);
+document.addEventListener('visibilitychange',()=>document.visibilityState==='visible'&&pull());
+addEventListener('online',pull);
+
+/* sync sheet */
+const sheet=$('#sheet'),scrim=$('#scrim'),msg=$('#msg');
+function open(o){sheet.classList.toggle('on',o);scrim.classList.toggle('on',o);if(o){$('#url').value=API;$('#invite').style.display=$('#disc').style.display=API?'':'none';msg.textContent=''}}
+$('#syncBtn').onclick=()=>open(true);scrim.onclick=()=>open(false);
+$('#connect').onclick=async()=>{const u=$('#url').value.trim();if(!u)return;msg.textContent='Connecting…';API=u;localStorage[SK]=u;await pull();
+  if(dot.dataset.s==='ok'){msg.textContent='';open(false);toast('Connected')}else msg.textContent='Could not reach that URL. Check the deployment is set to "Anyone".'};
+$('#invite').onclick=async()=>{const l=location.origin+location.pathname+'#sync='+encodeURIComponent(API);try{await navigator.clipboard.writeText(l);msg.textContent='Invite link copied.'}catch{msg.textContent=l}};
+$('#disc').onclick=()=>{API='';localStorage.removeItem(SK);st('none');open(false);toast('Sync turned off')};
+
+render();st('ok');setTimeout(()=>document.body.classList.remove('boot'),900);pull();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
