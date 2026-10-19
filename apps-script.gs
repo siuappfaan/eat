@@ -1,4 +1,4 @@
-// Meal Planner sync + archive (v1.2). Replace the old script with this, then
+// Meal Planner sync + archive (v1.4: adds notes). Replace the old script with this, then
 // Deploy > Manage deployments > edit (pencil) > Version: New version > Deploy.
 // Slots: (day offset from Monday + 2) * 2 + (0 lunch, 1 dinner). Days run Sat, Sun, Mon..Fri, Sat, Sun.
 const DAYS = ['Sat','Sun','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -29,7 +29,7 @@ function writeState(s) {
   for (let i = lo; i <= hi; i++) {
     const f = c => {
       const b = s.blocks.filter(x => x.s <= i && i < x.s + x.n && (x.l === 'b' || x.l === (c ? 'e' : 't')))[0];
-      return b ? b.t + (b.k ? ' (' + kind(b.k) + ')' : '') : '';
+      return b ? b.t + (b.k ? ' (' + kind(b.k) + ')' : '') + (b.nt ? '\n' + b.nt : '') : '';
     };
     rows.push([DAYS[i >> 1] + (i % 2 ? ' Dinner' : ' Lunch'), f(0), f(1)]);
   }
@@ -40,9 +40,10 @@ function writeState(s) {
 function archiveTab(names) {
   const sh = tab('Meal Archive');
   if (sh.getLastRow() === 0) {
-    sh.appendRow(['Week starting', 'Date', 'Day', 'Meal', 'Meals covered', 'Who', 'Meal name', 'Where', 'Lane']);
+    sh.appendRow(['Week starting', 'Date', 'Day', 'Meal', 'Meals covered', 'Who', 'Meal name', 'Where', 'Lane', 'Notes']);
     sh.setFrozenRows(1); sh.getRange('A:B').setNumberFormat('@');
   }
+  if (sh.getRange(1, 10).getValue() === '') sh.getRange(1, 10).setValue('Notes');
   return sh;
 }
 function upsertArchive(w) {
@@ -52,16 +53,16 @@ function upsertArchive(w) {
     for (let r = v.length - 1; r >= 0; r--) if (String(v[r][0]) === w.ws) sh.deleteRow(r + 2);
   }
   const rows = w.blocks.map(b => [w.ws, b.d, Utilities.formatDate(new Date(b.d + 'T12:00:00'), tz, 'EEE'),
-    b.m ? 'Dinner' : 'Lunch', b.n, b.l === 'b' ? 'Both' : w.names[b.l === 't' ? 0 : 1], b.t, kind(b.k), b.l]);
-  if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, 9).setValues(rows);
+    b.m ? 'Dinner' : 'Lunch', b.n, b.l === 'b' ? 'Both' : w.names[b.l === 't' ? 0 : 1], b.t, kind(b.k), b.l, b.nt || '']);
+  if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, 10).setValues(rows);
 }
 function readArchive() {
   const sh = archiveTab(), last = sh.getLastRow(), m = {};
   if (last < 2) return [];
-  sh.getRange(2, 1, last - 1, 9).getValues().forEach(r => {
+  sh.getRange(2, 1, last - 1, 10).getValues().forEach(r => {
     const ws = String(r[0]); (m[ws] = m[ws] || { ws: ws, blocks: [] }).blocks.push({
       d: String(r[1]), m: r[3] === 'Dinner' ? 1 : 0, n: Number(r[4]) || 1, l: String(r[8]) || 'b',
-      t: String(r[6]), k: r[7] === 'Home' ? 'home' : r[7] === 'Eating out' ? 'out' : '' });
+      t: String(r[6]), k: r[7] === 'Home' ? 'home' : r[7] === 'Eating out' ? 'out' : '', nt: String(r[9] || '') });
   });
   return Object.keys(m).map(k => m[k]);
 }
