@@ -87,7 +87,7 @@ footer{text-align:center;color:var(--mute);font-size:10px;opacity:.7;padding-top
 <div class="ext" id="xt"></div>
 <main><div class="head"><span></span><b id="n0"></b><b id="n1"></b></div><div id="grid"></div></main>
 <div class="ext b" id="xb"></div>
-<footer>v1.2</footer>
+<footer>v1.2.1</footer>
 <div id="toast"><span id="tmsg"></span><button id="tact"></button></div>
 <div id="scrim"></div>
 <div id="bar"><div class="r"><input id="mi" list="meals" autocomplete="off" enterkeyhint="done"><button class="btn p" id="bdone" style="flex:none;min-width:0">Done</button></div>
@@ -114,12 +114,12 @@ const rng=(ws,a,z)=>dt(ws,a)+' – '+dt(ws,z);
 /* data: blocks {id,l:'b'|'t'|'e',s:slot,n:span,t:text,k:''|'home'|'out'}; slot = (dayOffsetFromMon+2)*2 + (0 lunch|1 dinner) */
 const pk=(ws,bl)=>bl.filter(b=>b.t||b.k).map(b=>({d:addD(ws,(b.s>>1)-2),m:b.s&1,n:b.n,l:b.l,t:b.t,k:b.k}));
 const toS=(ws,x)=>((Math.round((pd(x.d)-pd(ws))/864e5)+2)<<1)+x.m;
-function fromCells(c){const bl=[],k=x=>x.o?'out':x.w?'home':'';for(let i=0;i<14;i++){const A=c[0][i],E=c[1][i],s=i+4;
+function fromCells(c){const bl=[],k=x=>x.o?'out':x.w?'home':'';for(let i=0;i<14;i++){const A=(c[0]||[])[i]||{},E=(c[1]||[])[i]||{},s=i+4;
   if(A.t&&A.t===E.t&&k(A)===k(E))bl.push({id:uid(),l:'b',s,n:1,t:A.t,k:k(A)});else[A,E].forEach((x,j)=>{if(x.t||x.w||x.o)bl.push({id:uid(),l:j?'e':'t',s,n:1,t:x.t,k:k(x)})})}return bl}
 function mig(s){if(s.cells){s.blocks=fromCells(s.cells);s.post=s.weekend?2:0;delete s.cells;delete s.weekend}
   s.blocks=s.blocks||[];s.pre=s.pre||0;s.post=s.post||0;s.ws=s.ws||targetMon();return s}
 let S=mig(rd(K,null)||{updatedAt:0,names:['Tiffany','Eric'],blocks:[]}),API=localStorage[SK]||'',sel=null,rep=null;
-let hist=rd(HK,[]).map(w=>w.cells?{ws:w.ws,names:S.names,blocks:pk(w.ws,fromCells(w.cells))}:w),pend=rd(PK,[]);
+let hist=rd(HK,[]).map(w=>{try{return w.cells?{ws:w.ws,names:S.names,blocks:pk(w.ws,fromCells(w.cells))}:w}catch{return null}}).filter(Boolean),pend=rd(PK,[]);
 const h=location.hash.match(/sync=([^&]+)/);if(h){API=decodeURIComponent(h[1]);localStorage[SK]=API;history.replaceState(null,'',location.pathname)}
 const vis=()=>[4-2*S.pre,13+2*S.post],get=id=>S.blocks.find(b=>b.id===id);
 const ovl=(a,b)=>a.s<b.s+b.n&&b.s<a.s+a.n&&(a.l==='b'||b.l==='b'||a.l===b.l);
